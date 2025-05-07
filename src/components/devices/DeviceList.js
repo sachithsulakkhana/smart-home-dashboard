@@ -1,197 +1,101 @@
-// src/components/dashboard/DeviceList.js
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Grid, 
+  Paper, 
   Typography, 
-  Tabs, 
-  Tab, 
+  List, 
+  ListItem, 
+  ListItemText, 
+  ListItemSecondaryAction, 
+  Switch, 
+  Divider, 
   Box, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem,
-  Divider,
-  CircularProgress,
-  Paper,
-  Button
+  Chip
 } from '@mui/material';
-import DeviceCard from './DeviceCard';
-import useDeviceStatus from '../../hooks/useDeviceStatus';
-import AddIcon from '@mui/icons-material/Add';
 
-/**
- * Component to display a grid of device cards with filtering options
- * 
- * @param {Object} props Component props
- * @param {Array} props.devices Array of device objects
- * @param {Array} props.rooms Array of room names
- * @param {boolean} props.loading Whether data is loading
- * @param {Function} props.onAddDevice Function to call when Add Device button is clicked
- */
-const DeviceList = ({ 
-  devices = [], 
-  rooms = [], 
-  loading = false, 
-  onAddDevice 
-}) => {
-  const [activeTab, setActiveTab] = useState('all');
-  const [selectedRoom, setSelectedRoom] = useState('all');
-  
-  // Handle tab change
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
-  
-  // Handle room filter change
-  const handleRoomChange = (event) => {
-    setSelectedRoom(event.target.value);
-  };
-  
-  // Filter devices based on active tab and selected room
-  const filteredDevices = devices.filter(device => {
-    const typeMatch = activeTab === 'all' || device.type === activeTab;
-    const roomMatch = selectedRoom === 'all' || device.room === selectedRoom;
-    return typeMatch && roomMatch;
-  });
-  
-  // Sort devices by name
-  const sortedDevices = [...filteredDevices].sort((a, b) => a.name.localeCompare(b.name));
-  
-  // Group devices by room if not filtering by room
-  const devicesByRoom = selectedRoom === 'all' 
-    ? sortedDevices.reduce((acc, device) => {
-        acc[device.room] = acc[device.room] || [];
-        acc[device.room].push(device);
-        return acc;
-      }, {})
-    : { [selectedRoom]: sortedDevices };
-  
-  // Get unique device types for tabs
-  const deviceTypes = ['all', ...new Set(devices.map(device => device.type))];
-  
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" component="h2">
-          Devices
+const DeviceList = ({ devices, onToggleDevice, onSelectDevice, selectedDevice, formatWatts }) => {
+  if (!devices || devices.length === 0) {
+    return (
+      <Paper sx={{ p: 2, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="subtitle1" color="text.secondary">
+          No devices found
         </Typography>
-        
-        <Button 
-          variant="outlined" 
-          startIcon={<AddIcon />}
-          onClick={onAddDevice}
-        >
-          Add Device
-        </Button>
-      </Box>
-      
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3, alignItems: { xs: 'stretch', md: 'center' } }}>
-        <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-          >
-            <Tab label="All Devices" value="all" />
-            {deviceTypes.filter(type => type !== 'all').map(type => (
-              <Tab 
-                key={type} 
-                label={type.charAt(0).toUpperCase() + type.slice(1) + 's'} 
-                value={type} 
-              />
-            ))}
-          </Tabs>
-        </Box>
-        
-        <FormControl sx={{ minWidth: 150 }}>
-          <InputLabel id="room-filter-label">Room</InputLabel>
-          <Select
-            labelId="room-filter-label"
-            id="room-filter"
-            value={selectedRoom}
-            label="Room"
-            onChange={handleRoomChange}
-            size="small"
-          >
-            <MenuItem value="all">All Rooms</MenuItem>
-            {rooms.map(room => (
-              <MenuItem key={room} value={room}>{room}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-      
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : selectedRoom !== 'all' ? (
-        <Grid container spacing={3}>
-          {sortedDevices.length > 0 ? (
-            sortedDevices.map(device => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={device.id}>
-                <DeviceWithStatus device={device} />
-              </Grid>
-            ))
-          ) : (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography color="text.secondary">
-                  No devices found with the current filters
-                </Typography>
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
-      ) : (
-        Object.entries(devicesByRoom).map(([room, roomDevices]) => (
-          <Box key={room} className="room-section">
-            <Typography variant="h6" component="h3" sx={{ mt: 4, mb: 2 }}>
-              {room}
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={3}>
-              {roomDevices.map(device => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={device.id}>
-                  <DeviceWithStatus device={device} />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))
-      )}
-    </Box>
-  );
-};
+      </Paper>
+    );
+  }
 
-/**
- * Wrapper component that connects a device card to the device status hook
- */
-const DeviceWithStatus = ({ device }) => {
-  const { 
-    device: deviceWithStatus, 
-    isLoading, 
-    togglePower, 
-    setLevel,
-    setTemperature,
-    setLockStatus 
-  } = useDeviceStatus(device.id);
-  
-  // Use the device from the hook if available, otherwise use the passed device
-  const deviceData = deviceWithStatus || device;
-  
+  // Group devices by location
+  const devicesByLocation = devices.reduce((acc, device) => {
+    if (!acc[device.Location]) {
+      acc[device.Location] = [];
+    }
+    acc[device.Location].push(device);
+    return acc;
+  }, {});
+
   return (
-    <DeviceCard 
-      device={deviceData}
-      loading={isLoading}
-      onToggle={togglePower}
-      onLevelChange={setLevel}
-      onTemperatureChange={setTemperature}
-      onLockToggle={setLockStatus}
-    />
+    <Paper sx={{ p: 2, height: '100%' }}>
+      <Typography variant="h6" component="h2" gutterBottom>
+        Devices ({devices.length})
+      </Typography>
+      
+      <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+        {Object.keys(devicesByLocation).map((location, locationIndex) => (
+          <React.Fragment key={location}>
+            {locationIndex > 0 && <Divider sx={{ my: 1 }} />}
+            
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2, mb: 1 }}>
+              {location}
+            </Typography>
+            
+            <List disablePadding>
+              {devicesByLocation[location].map((device) => (
+                <ListItem 
+                  key={device.DeviceID}
+                  button
+                  onClick={() => onSelectDevice(device)}
+                  selected={selectedDevice && selectedDevice.DeviceID === device.DeviceID}
+                  sx={{ 
+                    borderRadius: 1,
+                    mb: 0.5,
+                    bgcolor: selectedDevice && selectedDevice.DeviceID === device.DeviceID ? 'action.selected' : 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <ListItemText 
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {device.DeviceName}
+                        <Chip 
+                          size="small" 
+                          label={device.DeviceType} 
+                          sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
+                        />
+                      </Box>
+                    }
+                    secondary={device.IsActive ? formatWatts(device.CurrentWattage) : 'Off'}
+                    primaryTypographyProps={{ fontWeight: device.IsActive ? 'medium' : 'normal' }}
+                    secondaryTypographyProps={{ 
+                      color: device.IsActive ? 'success.main' : 'text.secondary',
+                      fontWeight: device.IsActive ? 'medium' : 'normal'
+                    }}
+                  />
+                  <ListItemSecondaryAction>
+                    <Switch
+                      edge="end"
+                      checked={device.IsActive}
+                      onChange={() => onToggleDevice(device.DeviceID, device.IsActive)}
+                      color="primary"
+                    />
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          </React.Fragment>
+        ))}
+      </Box>
+    </Paper>
   );
 };
 

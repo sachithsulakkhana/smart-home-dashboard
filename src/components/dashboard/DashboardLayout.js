@@ -1,131 +1,122 @@
-// src/components/dashboard/DashboardLayout.js
 import React, { useState } from 'react';
-import { 
-  AppBar, Box, CssBaseline, Divider, Drawer, IconButton, 
-  List, ListItem, ListItemButton, ListItemIcon, ListItemText, 
-  Toolbar, Typography, Container
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
+  Drawer
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import LightbulbIcon from '@mui/icons-material/Lightbulb';
-import ThermostatIcon from '@mui/icons-material/Thermostat';
-import SecurityIcon from '@mui/icons-material/Security';
-import SettingsIcon from '@mui/icons-material/Settings';
-import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
-import { Link, useLocation } from 'react-router-dom';
+import {
+  Menu as MenuIcon,
+  Notifications as NotificationsIcon,
+  Refresh as RefreshIcon
+} from '@mui/icons-material';
 
 const drawerWidth = 240;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Lighting', icon: <LightbulbIcon />, path: '/devices/lighting' },
-  { text: 'Climate', icon: <ThermostatIcon />, path: '/devices/climate' },
-  { text: 'Security', icon: <SecurityIcon />, path: '/devices/security' },
-  { text: 'Energy', icon: <BatteryChargingFullIcon />, path: '/energy' },
-  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-];
-
-function DashboardLayout({ children }) {
+const DashboardLayout = ({ children, onRefresh }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Smart Home
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              component={Link} 
-              to={item.path}
-              selected={location.pathname === item.path}
-            >
-              <ListItemIcon>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </div>
+  const handleRefresh = () => {
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
+  };
+
+  // Minimal drawer content (optional for mobile)
+  const drawerContent = (
+    <Toolbar sx={{ display: 'flex', justifyContent: 'center' }}>
+      <Typography variant="h6" fontWeight="bold">
+        Smart Home
+      </Typography>
+    </Toolbar>
   );
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
+      {/* App Bar */}
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          zIndex: theme.zIndex.drawer + 1,
+          width: '100%', // No drawer offset
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Smart Home Dashboard
           </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title="Refresh Data">
+              <IconButton color="inherit" onClick={handleRefresh}>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Notifications">
+              <IconButton color="inherit">
+                <NotificationsIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
-      >
+
+      {/* Drawer only for mobile */}
+      {isMobile && (
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
+            keepMounted: true,
           }}
           sx={{
-            display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+      )}
+
+      {/* Main content */}
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          pt: { xs: 10, md: 8 },
+          width: '100%',
+          minHeight: '100vh',
+          bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+        }}
       >
-        <Toolbar />
-        <Container maxWidth="xl">
-          {children}
-        </Container>
+        {children}
       </Box>
     </Box>
   );
-}
+};
 
 export default DashboardLayout;
