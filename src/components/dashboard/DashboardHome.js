@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Grid, CircularProgress, Box, useMediaQuery, useTheme, Alert, Snackbar } from '@mui/material';
+import { Container, Grid, CircularProgress, Box, useMediaQuery, useTheme, Alert, Snackbar, Typography } from '@mui/material';
 import DashboardLayout from './DashboardLayout';
 import StatCard from '../common/StatCard';
 import DeviceList from '../devices/DeviceList';
 import EnergyChart from '../devices/EnergyChart';
 import DeviceCard from '../devices/DeviceCard';
+import EnergyPredictionChart from '../devices/EnergyPredictionChart';
 import axios from 'axios';
 
-// API base URL - adjust as needed based on your Express server port
+// API base URL - 
 const API_URL = 'http://localhost:5000/api';
 
 const DashboardHome = () => {
@@ -36,6 +37,8 @@ const DashboardHome = () => {
     byDeviceType: [],
     byLocation: []
   });
+  const [predictionData, setPredictionData] = useState(null);
+  const [showPrediction, setShowPrediction] = useState(true);
 
   // Calculate energy data from device information
   const calculateEnergyFromDevices = (deviceData) => {
@@ -58,6 +61,7 @@ const DashboardHome = () => {
   // Fetch data on component mount
   useEffect(() => {
     fetchDashboardData();
+    fetchPredictionData();
     
     // Set up auto-refresh every 10 seconds
     const interval = setInterval(() => {
@@ -151,6 +155,17 @@ const DashboardHome = () => {
     }
   };
   
+  // Fetch prediction data
+  const fetchPredictionData = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/energy/prediction`);
+      setPredictionData(response.data);
+    } catch (err) {
+      console.error('Error fetching prediction data:', err);
+      // Don't set main error - just log it
+    }
+  };
+  
   // Fetch device energy history
   const fetchDeviceHistory = async (deviceId) => {
     try {
@@ -221,6 +236,11 @@ const DashboardHome = () => {
     return `${kwh.toFixed(2)} kWh`;
   };
 
+  // Toggle prediction view
+  const handleTogglePrediction = () => {
+    setShowPrediction(!showPrediction);
+  };
+
   // Show loading indicator
   if (loading && devices.length === 0) {
     return (
@@ -236,7 +256,7 @@ const DashboardHome = () => {
   );
 
   return (
-    <DashboardLayout>
+    <DashboardLayout onRefresh={fetchDashboardData}>
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         {/* Error Alert */}
         {error && (
@@ -260,18 +280,27 @@ const DashboardHome = () => {
         {/* Backend status notification */}
         {!error && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            <div className="flex justify-between items-center w-full">
-              <div>
-                <p className="font-bold">Real-time data mode</p>
-                <p>Dashboard is displaying live device data from the database</p>
-              </div>
-              <button 
-                onClick={fetchDashboardData}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-              >
-                Refresh Now
-              </button>
-            </div>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold">Real-time data mode</Typography>
+                <Typography variant="body2">Dashboard is displaying live device data with AI predictions</Typography>
+              </Box>
+              <Box>
+                <button 
+                  onClick={handleTogglePrediction}
+                  className="mr-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                  style={{ marginRight: '8px' }}
+                >
+                  {showPrediction ? 'Hide Predictions' : 'Show Predictions'}
+                </button>
+                <button 
+                  onClick={fetchDashboardData}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+                >
+                  Refresh Now
+                </button>
+              </Box>
+            </Box>
           </Alert>
         )}
       
@@ -305,6 +334,19 @@ const DashboardHome = () => {
             />
           </Grid>
         </Grid>
+
+        {/* AI Prediction Section */}
+        {showPrediction && (
+          <Grid container spacing={isTablet ? 2 : 3} sx={{ mt: isMobile ? 1 : 2 }}>
+            <Grid item xs={12}>
+              <EnergyPredictionChart 
+                energyReadings={deviceHistory.length > 0 ? deviceHistory : 
+                                (predictionData ? predictionData.readings : [])}
+                formatWatts={formatWatts}
+              />
+            </Grid>
+          </Grid>
+        )}
 
         {/* Device List and Energy Charts */}
         <Grid container spacing={isTablet ? 2 : 3} sx={{ mt: isMobile ? 1 : 2 }}>

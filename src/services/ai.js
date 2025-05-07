@@ -270,7 +270,7 @@ class SmartHomeAI {
     // Normalize values
     const normalizedTime = time / 24;
     const normalizedDay = dayOfWeek / 7;
-    const normalizedTemp = (temperature - 50) / 50; // Assuming temp range of 0-100
+    const normalizedTemp = (temperature - 50) / 50; 
     const normalizedHumidity = humidity / 100;
     const normalizedPrevUsage = previousUsage / 1000; // Assuming max usage of 1000
     const normalizedOccupancy = occupancy / 10; // Assuming max occupancy of 10

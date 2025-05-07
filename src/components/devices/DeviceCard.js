@@ -1,99 +1,137 @@
 import React from 'react';
-import { Paper, Typography, Box, Chip } from '@mui/material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import {
-  Lightbulb as LightIcon,
-  Tv as TvIcon,
-  Kitchen as KitchenIcon,
-  Computer as ComputerIcon,
-  AcUnit as HvacIcon,
-  Air as FanIcon,
-  Devices as DefaultIcon
+import { 
+  Paper, 
+  Typography, 
+  Box, 
+  Grid, 
+  Chip, 
+  Button,
+  Card,
+  CardContent
+} from '@mui/material';
+import { 
+  PowerSettingsNew as PowerIcon,
+  LocationOn as LocationIcon,
+  DevicesOther as DeviceTypeIcon,
+  Speed as SpeedIcon
 } from '@mui/icons-material';
-
-// Device icon mapping
-const DeviceIcons = {
-  'Light': LightIcon,
-  'TV': TvIcon,
-  'Appliance': KitchenIcon,
-  'Computer': ComputerIcon,
-  'HVAC': HvacIcon,
-  'Fan': FanIcon
-};
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 
 const DeviceCard = ({ device, history, formatWatts }) => {
-  // Get appropriate icon for device type
-  const getDeviceIcon = (deviceType) => {
-    const IconComponent = DeviceIcons[deviceType] || DefaultIcon;
-    return <IconComponent fontSize="small" />;
-  };
-  
+  if (!device) return null;
+
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper sx={{ p: 2, mb: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" component="h2" sx={{ mr: 1 }}>
-            {device.DeviceName}
-          </Typography>
-          <Chip 
-            icon={getDeviceIcon(device.DeviceType)} 
-            label={device.DeviceType} 
-            size="small" 
-            sx={{ mr: 1 }}
-          />
-          <Chip 
-            label={device.Location} 
-            size="small"
-            sx={{ mr: 1 }}
-          />
-          <Chip 
-            label={device.IsActive ? 'Active' : 'Inactive'} 
-            color={device.IsActive ? 'success' : 'default'} 
-            size="small"
-          />
-        </Box>
-        <Typography variant="h6" component="div" color={device.IsActive ? 'success.main' : 'text.secondary'}>
-          {device.IsActive ? formatWatts(device.CurrentWattage) : 'Off'}
+        <Typography variant="h6" component="h2">
+          Device Details
         </Typography>
+        <Chip 
+          label={device.IsActive ? 'Active' : 'Inactive'} 
+          color={device.IsActive ? 'success' : 'error'}
+          size="small"
+        />
       </Box>
-      
-      <Typography variant="subtitle1" gutterBottom>
-        Energy Usage History
-      </Typography>
-      
-      {history && history.length > 0 ? (
-        <Box sx={{ height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={history}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip formatter={(value) => formatWatts(value)} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="watts"
-                stroke="#8884d8"
-                activeDot={{ r: 8 }}
-                name="Power Usage"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-      ) : (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-          <Typography variant="body1" color="text.secondary">
-            No history data available for this device
-          </Typography>
-        </Box>
-      )}
-      
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-        Device ID: {device.DeviceID} • Rated Power: {formatWatts(device.WattageRating)}
-      </Typography>
+
+      <Grid container spacing={3}>
+        {/* Device Info */}
+        <Grid item xs={12} md={4}>
+          <Card variant="outlined" sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h5" component="h3" gutterBottom>
+                {device.DeviceName}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, color: 'text.secondary' }}>
+                <DeviceTypeIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography variant="body2">{device.DeviceType}</Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, color: 'text.secondary' }}>
+                <LocationIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography variant="body2">{device.Location}</Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, color: 'text.secondary' }}>
+                <SpeedIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography variant="body2">Rating: {formatWatts(device.WattageRating)}</Typography>
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h4" component="div" color={device.IsActive ? 'primary.main' : 'text.disabled'}>
+                  {device.IsActive ? formatWatts(device.CurrentWattage) : 'Off'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Current Power Usage
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Energy History Chart */}
+        <Grid item xs={12} md={8}>
+          <Card variant="outlined" sx={{ height: '100%', p: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Power Usage History
+            </Typography>
+            
+            {history && history.length > 0 ? (
+              <Box sx={{ height: 250 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={history}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="time" 
+                      label={{ value: 'Time', position: 'insideBottomRight', offset: -10 }}
+                    />
+                    <YAxis 
+                      label={{ value: 'Watts', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [formatWatts(value), 'Power']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="watts" 
+                      stroke="#8884d8" 
+                      activeDot={{ r: 8 }}
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            ) : (
+              <Box sx={{ 
+                height: 250, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: 'text.secondary',
+                bgcolor: 'background.default',
+                borderRadius: 1
+              }}>
+                <Typography>
+                  {device.IsActive 
+                    ? 'Collecting usage data...' 
+                    : 'No usage data available while device is off'}
+                </Typography>
+              </Box>
+            )}
+          </Card>
+        </Grid>
+      </Grid>
     </Paper>
   );
 };

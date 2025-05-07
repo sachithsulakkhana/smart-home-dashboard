@@ -355,7 +355,68 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   });
 }
-
+// Get Prediction Data
+app.get('/api/energy/prediction', async (req, res) => {
+  try {
+    const { deviceId } = req.query;
+    
+    // Basic input validation
+    let query;
+    if (deviceId) {
+      // Get historical data for specific device
+      query = `
+        SELECT 
+          ReadingID,
+          DeviceID,
+          Timestamp,
+          WattageReading,
+          IsDeviceOn
+        FROM EnergyReadings
+        WHERE DeviceID = @deviceId
+          AND Timestamp >= DATEADD(DAY, -14, GETDATE())
+        ORDER BY Timestamp
+      `;
+      
+      const request = new sql.Request();
+      request.input('deviceId', sql.Int, deviceId);
+      const result = await request.query(query);
+      
+      res.json({
+        success: true,
+        deviceId: deviceId,
+        predictionSource: 'device-specific',
+        readings: result.recordset
+      });
+    } else {
+      // Get aggregated historical data for all devices
+      query = `
+        SELECT 
+          CONVERT(datetime, CONVERT(date, Timestamp)) AS ReadingDate,
+          DATEPART(HOUR, Timestamp) AS HourOfDay,
+          SUM(WattageReading) AS TotalWattage,
+          COUNT(*) AS ReadingCount
+        FROM EnergyReadings
+        WHERE Timestamp >= DATEADD(DAY, -14, GETDATE())
+        GROUP BY CONVERT(date, Timestamp), DATEPART(HOUR, Timestamp)
+        ORDER BY ReadingDate, HourOfDay
+      `;
+      
+      const result = await sql.query(query);
+      
+      res.json({
+        success: true,
+        predictionSource: 'all-devices',
+        aggregatedReadings: result.recordset
+      });
+    }
+  } catch (err) {
+    console.error('Error generating prediction data:', err);
+    res.status(500).json({ 
+      error: 'Failed to generate prediction data',
+      details: err.message
+    });
+  }
+});
 // Start the server
 connectToDatabase()
   .then(() => {
